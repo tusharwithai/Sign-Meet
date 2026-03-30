@@ -82,7 +82,7 @@ export default function MeetingRoom({ params }: { params: Promise<{ roomId: stri
   useEffect(() => {
     const getToken = async () => {
       try {
-        const res = await fetch(`http://localhost:3001/getToken?roomName=${roomId}&participantName=${participantName}`);
+        const res = await fetch(`/api/token?roomName=${roomId}&participantName=${participantName}`);
         const data = await res.json();
         if (data.token) {
           setToken(data.token);
