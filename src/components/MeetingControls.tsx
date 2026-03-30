@@ -62,7 +62,7 @@ export default function MeetingControls() {
   const isSharing = localParticipant?.isScreenShareEnabled ?? false;
 
   return (
-    <div className="flex items-center justify-between px-6 bg-[#202124] text-white z-20 absolute bottom-0 left-0 right-0 h-20">
+    <div className="flex items-center justify-between px-6 bg-[#202124] text-white z-20 w-full shrink-0 h-20 border-t border-white/10">
       
       {/* Left Info */}
       <div className="flex w-1/4 items-center gap-2">

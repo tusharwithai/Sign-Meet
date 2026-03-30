@@ -41,28 +41,29 @@ function MyVideoGrid() {
     const remoteTrack = tracks.find(t => !t.participant.isLocal);
     
     return (
-      <div className="w-full h-full relative bg-[#202124] p-4 rounded-xl overflow-hidden mt-4 mx-4">
-        {/* Focus Remote */}
-        {remoteTrack && (
-          <div className="absolute inset-0 bg-[#3c4043] rounded-xl overflow-hidden">
-            <ParticipantTile trackRef={remoteTrack} className="w-full h-full" />
-          </div>
-        )}
-        
-        {/* PIP Local */}
-        {localTrack && (
-          <div className="absolute bottom-6 right-6 w-72 aspect-video rounded-xl overflow-hidden shadow-2xl border border-white/20 z-10 bg-[#3c4043] transition-all hover:scale-105 cursor-pointer">
-             <ParticipantTile trackRef={localTrack} className="w-full h-full object-cover" />
-          </div>
-        )}
+      <div className="w-full h-full p-4 flex items-center justify-center">
+        <div className="w-full h-full relative bg-[#3c4043] rounded-xl overflow-hidden border border-white/5 shadow-md">
+          {/* Focus Remote */}
+          {remoteTrack && (
+            <div className="absolute inset-0 overflow-hidden">
+              <ParticipantTile trackRef={remoteTrack} className="w-full h-full" />
+            </div>
+          )}
+          
+          {/* PIP Local */}
+          {localTrack && (
+            <div className="absolute bottom-6 right-6 w-72 aspect-video rounded-xl overflow-hidden shadow-2xl border border-white/20 z-10 bg-[#202124] transition-all hover:scale-105 cursor-pointer">
+               <ParticipantTile trackRef={localTrack} className="w-full h-full object-cover" />
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
-  // 3+ People: Default grid
   return (
-    <div className="w-full h-full p-4">
-      <GridLayout tracks={tracks} style={{ height: 'calc(100vh - 120px)' }}>
+    <div className="p-4 w-full h-full flex items-center justify-center">
+      <GridLayout tracks={tracks} className="w-full h-full">
         <ParticipantTile />
       </GridLayout>
     </div>
@@ -130,7 +131,7 @@ export default function MeetingRoom({ params }: { params: Promise<{ roomId: stri
 
   if (token === "") {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background text-foreground">
+      <div className="flex items-center justify-center min-h-screen bg-[#202124] text-white">
         <p className="text-xl">Joining meeting...</p>
       </div>
     );
@@ -143,26 +144,28 @@ export default function MeetingRoom({ params }: { params: Promise<{ roomId: stri
       token={token}
       serverUrl={serverUrl}
       data-lk-theme="default"
-      className="h-screen w-screen bg-background text-foreground flex flex-col overflow-hidden relative"
+      className="h-[100dvh] w-full bg-[#202124] text-white flex flex-col overflow-hidden"
     >
-      <div className="flex-1 flex overflow-hidden w-full h-full pb-20">
-        <div className={`flex-1 overflow-hidden transition-all duration-300 ease-in-out`}>
+      {/* Main Content Area (Videos + Chat panel) */}
+      <div className="flex-1 flex overflow-hidden w-full relative">
+        <div className="flex-1 w-full h-full overflow-hidden transition-all duration-300 ease-in-out">
            <MyVideoGrid />
         </div>
         
         {isChatOpen && (
-           <div className="w-80 border-l border-border h-full bg-background z-10 flex-shrink-0 animate-in slide-in-from-right-10 duration-200">
+           <div className="w-80 border-l border-white/10 h-full bg-[#202124] z-10 flex-shrink-0 animate-in slide-in-from-right-10 duration-200">
               <ChatPanel roomId={roomId} />
            </div>
         )}
         
         {isParticipantsOpen && (
-           <div className="w-80 border-l border-border h-full bg-background z-10 flex-shrink-0 animate-in slide-in-from-right-10 duration-200">
+           <div className="w-80 border-l border-white/10 h-full bg-[#202124] z-10 flex-shrink-0 animate-in slide-in-from-right-10 duration-200">
               <ParticipantsPanel />
            </div>
         )}
       </div>
       
+      {/* Bottom Controls */}
       <MeetingControls />
       <RoomAudioRenderer />
     </LiveKitRoom>
