@@ -11,7 +11,6 @@ export default function LobbyPage({ params }: { params: Promise<{ roomId: string
   const roomId = unwrappedParams.roomId;
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const { isMicEnabled, isCamEnabled, toggleMic: toggleStoreMic, toggleCam: toggleStoreCam } = useMeetStore();
   
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -19,7 +18,6 @@ export default function LobbyPage({ params }: { params: Promise<{ roomId: string
   const [errorDesc, setErrorDesc] = useState<string | null>(null);
 
   useEffect(() => {
-    setMounted(true);
     let activeStream: MediaStream | null = null;
     const startMedia = async () => {
       try {
@@ -45,7 +43,7 @@ export default function LobbyPage({ params }: { params: Promise<{ roomId: string
           videoRef.current.srcObject = activeStream;
         }
         setErrorDesc(null);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error accessing media:", err);
         setErrorDesc("Cannot access camera or microphone. Please check permissions.");
       }
@@ -84,15 +82,14 @@ export default function LobbyPage({ params }: { params: Promise<{ roomId: string
       <header className="p-4 px-6 flex items-center justify-between">
         <div className="text-xl font-medium tracking-tight">Google Meet</div>
         <div className="flex items-center gap-4">
-          {mounted && (
-            <button
+          <button
+              suppressHydrationWarning
               onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
               className="w-10 h-10 flex items-center justify-center hover:bg-surface rounded-full transition-colors text-muted hover:text-foreground"
               aria-label="Toggle Dark Mode"
             >
               {resolvedTheme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
             </button>
-          )}
         </div>
       </header>
       

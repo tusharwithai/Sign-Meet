@@ -11,10 +11,7 @@ export default function Home() {
   const [meetingCode, setMeetingCode] = useState<string>("");
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
   useEffect(() => {
-    setMounted(true);
     const updateDateTime = () => {
       const now = new Date();
       setCurrentTime(now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
@@ -60,15 +57,14 @@ export default function Home() {
             <Settings className="w-10 h-10 cursor-pointer hover:bg-surface rounded-full p-2.5 transition-colors" />
             
             {/* Theme Toggle */}
-            {mounted && (
-              <button
-                onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-                className="w-10 h-10 flex items-center justify-center hover:bg-surface rounded-full transition-colors ml-2"
-                aria-label="Toggle Dark Mode"
-              >
-                {resolvedTheme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-              </button>
-            )}
+            <button
+              suppressHydrationWarning
+              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+              className="w-10 h-10 flex items-center justify-center hover:bg-surface rounded-full transition-colors ml-2"
+              aria-label="Toggle Dark Mode"
+            >
+              {resolvedTheme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+            </button>
           </div>
           
           {/* User Profile Avatar Placeholder */}

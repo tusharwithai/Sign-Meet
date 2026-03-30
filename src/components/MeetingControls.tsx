@@ -52,7 +52,7 @@ export default function MeetingControls() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const sendReaction = (emoji: string) => {
+  const sendReaction = (_emoji: string) => {
     setShowReactions(false);
     // TODO: Broadcast overlay implementation
   };
