@@ -24,36 +24,36 @@ function MyVideoGrid() {
     { onlySubscribed: false },
   );
 
+  const localTracks = tracks.filter(t => t.participant.isLocal);
+  const remoteTracks = tracks.filter(t => !t.participant.isLocal);
+
+  const primaryLocal = localTracks.find(t => t.source === Track.Source.Camera) || localTracks[0];
+
   // 1 Person: Centered and capped width
-  if (tracks.length === 1) {
+  if (remoteTracks.length === 0) {
     return (
       <div className="w-full h-full p-4 flex items-center justify-center">
-        <div className="w-full max-w-5xl aspect-video rounded-xl overflow-hidden bg-[#3c4043] shadow-md border border-white/5">
-          <ParticipantTile trackRef={tracks[0]} className="w-full h-full object-cover" />
+        <div className="w-full max-w-5xl aspect-video rounded-xl overflow-hidden bg-[#3c4043] shadow-md border border-white/5 relative">
+          {primaryLocal && <ParticipantTile trackRef={primaryLocal} className="!w-full !h-full absolute inset-0 [&>video]:!object-cover" />}
         </div>
       </div>
     );
   }
 
-  // 2 Tracks -> typical 1-on-1 if one is local and one is remote
-  if (tracks.length === 2 && tracks.some(t => t.participant.isLocal) && tracks.some(t => !t.participant.isLocal)) {
-    const localTrack = tracks.find(t => t.participant.isLocal);
-    const remoteTrack = tracks.find(t => !t.participant.isLocal);
-    
+  // 2 Persons (1-on-1): Focus remote, PIP local
+  if (remoteTracks.length === 1) {
     return (
       <div className="w-full h-full p-4 flex items-center justify-center">
         <div className="w-full h-full relative bg-[#3c4043] rounded-xl overflow-hidden border border-white/5 shadow-md">
           {/* Focus Remote */}
-          {remoteTrack && (
-            <div className="absolute inset-0 overflow-hidden">
-              <ParticipantTile trackRef={remoteTrack} className="w-full h-full" />
-            </div>
-          )}
+          <div className="absolute inset-0 overflow-hidden">
+            <ParticipantTile trackRef={remoteTracks[0]} className="!w-full !h-full" />
+          </div>
           
           {/* PIP Local */}
-          {localTrack && (
+          {primaryLocal && (
             <div className="absolute bottom-6 right-6 w-72 aspect-video rounded-xl overflow-hidden shadow-2xl border border-white/20 z-10 bg-[#202124] transition-all hover:scale-105 cursor-pointer">
-               <ParticipantTile trackRef={localTrack} className="w-full h-full object-cover" />
+               <ParticipantTile trackRef={primaryLocal} className="!w-full !h-full absolute inset-0 [&>video]:!object-cover" />
             </div>
           )}
         </div>
@@ -61,11 +61,21 @@ function MyVideoGrid() {
     );
   }
 
+  // 3+ Persons: Grid for remotes, persistent PIP for local
   return (
-    <div className="p-4 w-full h-full flex items-center justify-center">
-      <GridLayout tracks={tracks} className="w-full h-full">
-        <ParticipantTile />
-      </GridLayout>
+    <div className="p-4 w-full h-full relative flex items-center justify-center">
+      <div className="w-full h-full relative bg-[#3c4043] rounded-xl overflow-hidden shadow-md border border-white/5">
+        <GridLayout tracks={remoteTracks} className="!w-full !h-full">
+          <ParticipantTile />
+        </GridLayout>
+      </div>
+
+      {/* PIP Local */}
+      {primaryLocal && (
+        <div className="absolute bottom-10 right-10 w-64 aspect-video rounded-xl overflow-hidden shadow-2xl border border-white/20 z-10 bg-[#202124] transition-all hover:scale-105 cursor-pointer">
+           <ParticipantTile trackRef={primaryLocal} className="!w-full !h-full absolute inset-0 [&>video]:!object-cover" />
+        </div>
+      )}
     </div>
   );
 }
@@ -144,11 +154,12 @@ export default function MeetingRoom({ params }: { params: Promise<{ roomId: stri
       token={token}
       serverUrl={serverUrl}
       data-lk-theme="default"
-      className="h-[100dvh] w-full bg-[#202124] text-white flex flex-col overflow-hidden"
+      className="bg-[#202124] text-white"
+      style={{ width: '100%', height: '100dvh', position: 'relative', overflow: 'hidden' }}
     >
       {/* Main Content Area (Videos + Chat panel) */}
-      <div className="flex-1 flex overflow-hidden w-full relative">
-        <div className="flex-1 w-full h-full overflow-hidden transition-all duration-300 ease-in-out">
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: '80px', display: 'flex', overflow: 'hidden' }}>
+        <div className="flex-1 w-full h-full overflow-hidden transition-all duration-300 ease-in-out relative">
            <MyVideoGrid />
         </div>
         
@@ -166,7 +177,10 @@ export default function MeetingRoom({ params }: { params: Promise<{ roomId: stri
       </div>
       
       {/* Bottom Controls */}
-      <MeetingControls />
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '80px', zIndex: 50 }}>
+        <MeetingControls />
+      </div>
+
       <RoomAudioRenderer />
     </LiveKitRoom>
   );
