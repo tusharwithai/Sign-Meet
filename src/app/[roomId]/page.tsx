@@ -6,7 +6,8 @@ import {
   RoomAudioRenderer,
   GridLayout,
   ParticipantTile,
-  useTracks
+  useTracks,
+  useLocalParticipant
 } from "@livekit/components-react";
 import { Track } from "livekit-client";
 import "@livekit/components-styles";
@@ -14,7 +15,11 @@ import { useMeetStore } from "@/store/useMeetStore";
 import MeetingControls from "@/components/MeetingControls";
 import ChatPanel from "@/components/ChatPanel";
 import ParticipantsPanel from "@/components/ParticipantsPanel";
+import SignLanguageOverlay from "@/components/SignLanguageOverlay";
+import { useSignLanguage } from "@/hooks/useSignLanguage";
+import { useSession } from "next-auth/react";
 
+// ── Video Grid ──────────────────────────────────────────────────────────────────
 function MyVideoGrid() {
   const tracks = useTracks(
     [
@@ -24,12 +29,11 @@ function MyVideoGrid() {
     { onlySubscribed: false },
   );
 
-  const localTracks = tracks.filter(t => t.participant.isLocal);
+  const localTracks  = tracks.filter(t => t.participant.isLocal);
   const remoteTracks = tracks.filter(t => !t.participant.isLocal);
-
   const primaryLocal = localTracks.find(t => t.source === Track.Source.Camera) || localTracks[0];
 
-  // 1 Person: Centered and capped width
+  // 1 Person: Centered
   if (remoteTracks.length === 0) {
     return (
       <div className="w-full h-full p-4 flex items-center justify-center">
@@ -45,12 +49,9 @@ function MyVideoGrid() {
     return (
       <div className="w-full h-full p-4 flex items-center justify-center">
         <div className="w-full h-full relative bg-[#3c4043] rounded-xl overflow-hidden border border-white/5 shadow-md">
-          {/* Focus Remote */}
           <div className="absolute inset-0 overflow-hidden">
             <ParticipantTile trackRef={remoteTracks[0]} className="!w-full !h-full" />
           </div>
-          
-          {/* PIP Local */}
           {primaryLocal && (
             <div className="absolute bottom-6 right-6 w-72 aspect-video rounded-xl overflow-hidden shadow-2xl border border-white/20 z-10 bg-[#202124] transition-all hover:scale-105 cursor-pointer">
                <ParticipantTile trackRef={primaryLocal} className="!w-full !h-full absolute inset-0 [&>video]:!object-cover" />
@@ -61,7 +62,7 @@ function MyVideoGrid() {
     );
   }
 
-  // 3+ Persons: Grid for remotes, persistent PIP for local
+  // 3+ Persons: Grid remotes, PIP local
   return (
     <div className="p-4 w-full h-full relative flex items-center justify-center">
       <div className="w-full h-full relative bg-[#3c4043] rounded-xl overflow-hidden shadow-md border border-white/5">
@@ -69,8 +70,6 @@ function MyVideoGrid() {
           <ParticipantTile />
         </GridLayout>
       </div>
-
-      {/* PIP Local */}
       {primaryLocal && (
         <div className="absolute bottom-10 right-10 w-64 aspect-video rounded-xl overflow-hidden shadow-2xl border border-white/20 z-10 bg-[#202124] transition-all hover:scale-105 cursor-pointer">
            <ParticipantTile trackRef={primaryLocal} className="!w-full !h-full absolute inset-0 [&>video]:!object-cover" />
@@ -80,20 +79,50 @@ function MyVideoGrid() {
   );
 }
 
+// ── Sign Language Bridge (must be inside LiveKitRoom context) ───────────────────
+function SignLanguageBridge() {
+  const { localParticipant } = useLocalParticipant();
+  const { isSignLanguageEnabled } = useMeetStore();
+  const { isConnected } = useSignLanguage(localParticipant);
+
+  if (!isSignLanguageEnabled) return null;
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        bottom: "96px",      // sits just above the 80px control bar
+        left: "20px",
+        zIndex: 40,
+        animation: "slideInOverlay 0.25s ease-out",
+      }}
+    >
+      <SignLanguageOverlay isConnected={isConnected} />
+      <style>{`
+        @keyframes slideInOverlay {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0);    }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ── Main Room Page ──────────────────────────────────────────────────────────────
 export default function MeetingRoom({ params }: { params: Promise<{ roomId: string }> }) {
   const unwrappedParams = use(params);
   const roomId = unwrappedParams.roomId;
   const [token, setToken] = useState("");
-  const { isMicEnabled, isCamEnabled, isChatOpen, isParticipantsOpen } = useMeetStore();
+  const { isCamEnabled, isMicEnabled, isChatOpen, isParticipantsOpen } = useMeetStore();
+  const { data: session } = useSession();
   
-  // You would configure this in frontend/.env.local (NEXT_PUBLIC_LIVEKIT_URL)
   const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || "wss://test-project.livekit.cloud";
-  const [participantName] = useState(() => `Guest-${Math.floor(Math.random() * 1000)}`);
+  const participantName = session?.user?.name ?? session?.user?.email ?? `Guest-${Math.floor(Math.random() * 9999)}`;
 
   useEffect(() => {
     const getToken = async () => {
       try {
-        const res = await fetch(`/api/token?roomName=${roomId}&participantName=${participantName}`);
+        const res  = await fetch(`/api/token?roomName=${roomId}&participantName=${participantName}`);
         const data = await res.json();
         if (data.token) {
           setToken(data.token);
@@ -101,10 +130,9 @@ export default function MeetingRoom({ params }: { params: Promise<{ roomId: stri
           console.error("No token received", data);
         }
       } catch (e) {
-        console.error("Failed to fetch token, check backend", e);
+        console.error("Failed to fetch token", e);
       }
     };
-    
     getToken();
   }, [roomId, participantName]);
 
@@ -125,7 +153,6 @@ export default function MeetingRoom({ params }: { params: Promise<{ roomId: stri
         <div className="text-left bg-surface p-6 rounded-lg border border-border w-full max-w-2xl font-mono text-sm overflow-x-auto">
           <p className="text-primary mb-2">1. In frontend/.env.local (Create if missing):</p>
           <code className="block text-foreground mb-6">NEXT_PUBLIC_LIVEKIT_URL=wss://your-project.livekit.cloud</code>
-          
           <p className="text-primary mb-2">2. In backend/.env:</p>
           <code className="block text-foreground">LIVEKIT_API_KEY=your_api_key<br/>LIVEKIT_API_SECRET=your_api_secret</code>
         </div>
@@ -157,7 +184,7 @@ export default function MeetingRoom({ params }: { params: Promise<{ roomId: stri
       className="bg-[#202124] text-white"
       style={{ width: '100%', height: '100dvh', position: 'relative', overflow: 'hidden' }}
     >
-      {/* Main Content Area (Videos + Chat panel) */}
+      {/* Main Content Area (Videos + side panels) */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: '80px', display: 'flex', overflow: 'hidden' }}>
         <div className="flex-1 w-full h-full overflow-hidden transition-all duration-300 ease-in-out relative">
            <MyVideoGrid />
@@ -176,6 +203,9 @@ export default function MeetingRoom({ params }: { params: Promise<{ roomId: stri
         )}
       </div>
       
+      {/* Sign Language Overlay + Hook (inside LiveKitRoom context) */}
+      <SignLanguageBridge />
+
       {/* Bottom Controls */}
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '80px', zIndex: 50 }}>
         <MeetingControls />

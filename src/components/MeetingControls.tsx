@@ -7,9 +7,28 @@ import { useMeetStore } from "@/store/useMeetStore";
 
 const REACTIONS = ["👍", "👎", "👏", "😂", "😮", "😢", "🎉"];
 
+// ── Sign Language icon (ASL hand SVG) ──────────────────────────────────────────
+function SignLanguageIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+      <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+      <line x1="6" y1="1" x2="6" y2="8" />
+      <line x1="10" y1="1" x2="10" y2="8" />
+      <line x1="14" y1="1" x2="14" y2="8" />
+    </svg>
+  );
+}
+
 export default function MeetingControls() {
   const { localParticipant } = useLocalParticipant();
-  const { isChatOpen, toggleChat, isParticipantsOpen, toggleParticipants, isCaptionsEnabled, toggleCaptions, isHandRaised, toggleHandRaise } = useMeetStore();
+  const {
+    isChatOpen, toggleChat,
+    isParticipantsOpen, toggleParticipants,
+    isCaptionsEnabled, toggleCaptions,
+    isHandRaised, toggleHandRaise,
+    isSignLanguageEnabled, toggleSignLanguage,
+  } = useMeetStore();
   const [time, setTime] = useState("");
   
   // Modals state
@@ -57,8 +76,8 @@ export default function MeetingControls() {
     // TODO: Broadcast overlay implementation
   };
 
-  const isMicOn = localParticipant?.isMicrophoneEnabled ?? false;
-  const isCamOn = localParticipant?.isCameraEnabled ?? false;
+  const isMicOn  = localParticipant?.isMicrophoneEnabled ?? false;
+  const isCamOn  = localParticipant?.isCameraEnabled    ?? false;
   const isSharing = localParticipant?.isScreenShareEnabled ?? false;
 
   return (
@@ -107,6 +126,35 @@ export default function MeetingControls() {
           className={`p-3 rounded-full transition-colors ${isCaptionsEnabled ? 'bg-[#8ab4f8] text-[#202124]' : 'bg-[#3c4043] hover:bg-[#4d5156]'}`}
         >
           <Captions className={`w-5 h-5 ${isCaptionsEnabled ? 'fill-current' : ''}`} />
+        </button>
+
+        {/* ── Sign Language Mode Button ───────────────────────────── */}
+        <button
+          onClick={toggleSignLanguage}
+          title={isSignLanguageEnabled ? "Disable Sign Language Mode" : "Enable Sign Language Mode"}
+          className={`p-3 rounded-full transition-all duration-200 relative ${
+            isSignLanguageEnabled
+              ? 'bg-[#8ab4f8] text-[#202124] shadow-[0_0_12px_rgba(138,180,248,0.5)]'
+              : 'bg-[#3c4043] hover:bg-[#4d5156] text-white'
+          }`}
+        >
+          <SignLanguageIcon size={20} />
+          {/* Pulsing dot when active */}
+          {isSignLanguageEnabled && (
+            <span
+              style={{
+                position: "absolute",
+                top: "4px",
+                right: "4px",
+                width: "7px",
+                height: "7px",
+                borderRadius: "50%",
+                background: "#34d399",
+                boxShadow: "0 0 6px #34d399",
+                animation: "ping 1.5s cubic-bezier(0,0,0.2,1) infinite",
+              }}
+            />
+          )}
         </button>
 
         {/* Reactions Wrapper */}
@@ -216,6 +264,13 @@ export default function MeetingControls() {
           <Lock className="w-5 h-5" />
         </button>
       </div>
+
+      {/* Ping animation for active indicator */}
+      <style>{`
+        @keyframes ping {
+          75%, 100% { transform: scale(2); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }

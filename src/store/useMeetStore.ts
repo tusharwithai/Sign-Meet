@@ -14,6 +14,19 @@ interface MeetStore {
   toggleCaptions: () => void;
   toggleHandRaise: () => void;
   closeAllPanels: () => void;
+
+  // ── Sign Language Mode ────────────────────────────────────────────────────
+  isSignLanguageEnabled: boolean;
+  signLetter: string;
+  signConfidence: number;
+  signWordBuffer: string;
+  signTranscript: string[];
+  toggleSignLanguage: () => void;
+  setSignLetter: (letter: string) => void;
+  setSignConfidence: (confidence: number) => void;
+  setSignWordBuffer: (buffer: string) => void;
+  appendSignTranscript: (word: string) => void;
+  clearSignTranscript: () => void;
 }
 
 export const useMeetStore = create<MeetStore>((set) => ({
@@ -30,4 +43,27 @@ export const useMeetStore = create<MeetStore>((set) => ({
   toggleCaptions: () => set((state) => ({ isCaptionsEnabled: !state.isCaptionsEnabled })),
   toggleHandRaise: () => set((state) => ({ isHandRaised: !state.isHandRaised })),
   closeAllPanels: () => set({ isChatOpen: false, isParticipantsOpen: false }),
+
+  // ── Sign Language ─────────────────────────────────────────────────────────
+  isSignLanguageEnabled: false,
+  signLetter: '',
+  signConfidence: 0,
+  signWordBuffer: '',
+  signTranscript: [],
+  toggleSignLanguage: () =>
+    set((state) => ({
+      isSignLanguageEnabled: !state.isSignLanguageEnabled,
+      // Reset state when turning off
+      ...(!state.isSignLanguageEnabled ? {} : {
+        signLetter: '',
+        signConfidence: 0,
+        signWordBuffer: '',
+      }),
+    })),
+  setSignLetter: (letter) => set({ signLetter: letter }),
+  setSignConfidence: (confidence) => set({ signConfidence: confidence }),
+  setSignWordBuffer: (buffer) => set({ signWordBuffer: buffer }),
+  appendSignTranscript: (word) =>
+    set((state) => ({ signTranscript: [...state.signTranscript, word] })),
+  clearSignTranscript: () => set({ signTranscript: [], signWordBuffer: '' }),
 }));
